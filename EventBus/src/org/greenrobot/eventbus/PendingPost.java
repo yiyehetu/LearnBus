@@ -18,7 +18,11 @@ package org.greenrobot.eventbus;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 包装订阅关系和订阅事件
+ */
 final class PendingPost {
+    // 对象池
     private final static List<PendingPost> pendingPostPool = new ArrayList<PendingPost>();
 
     Object event;
@@ -30,10 +34,12 @@ final class PendingPost {
         this.subscription = subscription;
     }
 
+
     static PendingPost obtainPendingPost(Subscription subscription, Object event) {
         synchronized (pendingPostPool) {
             int size = pendingPostPool.size();
             if (size > 0) {
+                // 取出一个对象
                 PendingPost pendingPost = pendingPostPool.remove(size - 1);
                 pendingPost.event = event;
                 pendingPost.subscription = subscription;

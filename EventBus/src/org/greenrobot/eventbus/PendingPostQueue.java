@@ -16,14 +16,19 @@
 
 package org.greenrobot.eventbus;
 
+/**
+ * 待定发送队列
+ */
 final class PendingPostQueue {
     private PendingPost head;
     private PendingPost tail;
 
+    // 入队
     synchronized void enqueue(PendingPost pendingPost) {
         if (pendingPost == null) {
             throw new NullPointerException("null cannot be enqueued");
         }
+
         if (tail != null) {
             tail.next = pendingPost;
             tail = pendingPost;
@@ -32,6 +37,7 @@ final class PendingPostQueue {
         } else {
             throw new IllegalStateException("Head present, but no tail");
         }
+
         notifyAll();
     }
 

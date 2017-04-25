@@ -28,6 +28,7 @@ final class HandlerPoster extends Handler {
     private boolean handlerActive;
 
     HandlerPoster(EventBus eventBus, Looper looper, int maxMillisInsideHandleMessage) {
+        // looper所在线程的handler
         super(looper);
         this.eventBus = eventBus;
         this.maxMillisInsideHandleMessage = maxMillisInsideHandleMessage;
@@ -40,6 +41,7 @@ final class HandlerPoster extends Handler {
             queue.enqueue(pendingPost);
             if (!handlerActive) {
                 handlerActive = true;
+                // 发送消息
                 if (!sendMessage(obtainMessage())) {
                     throw new EventBusException("Could not send handler message");
                 }
@@ -53,6 +55,7 @@ final class HandlerPoster extends Handler {
         try {
             long started = SystemClock.uptimeMillis();
             while (true) {
+                // 出队
                 PendingPost pendingPost = queue.poll();
                 if (pendingPost == null) {
                     synchronized (this) {
@@ -64,8 +67,11 @@ final class HandlerPoster extends Handler {
                         }
                     }
                 }
+
                 eventBus.invokeSubscriber(pendingPost);
                 long timeInMethod = SystemClock.uptimeMillis() - started;
+
+                // 重新调度
                 if (timeInMethod >= maxMillisInsideHandleMessage) {
                     if (!sendMessage(obtainMessage())) {
                         throw new EventBusException("Could not send handler message");

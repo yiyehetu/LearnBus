@@ -461,6 +461,7 @@ public class EventBus {
                     mainThreadPoster.enqueue(subscription, event);
                 }
                 break;
+            // 分线程
             case BACKGROUND:
                 if (isMainThread) {
                     backgroundPoster.enqueue(subscription, event);
