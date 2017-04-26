@@ -36,7 +36,7 @@ class SubscriberMethodFinder {
     private static final int SYNTHETIC = 0x1000;
 
     private static final int MODIFIERS_IGNORE = Modifier.ABSTRACT | Modifier.STATIC | BRIDGE | SYNTHETIC;
-    // 方法缓存 ConcurrentHashMap
+    // 方法缓存集合
     private static final Map<Class<?>, List<SubscriberMethod>> METHOD_CACHE = new ConcurrentHashMap<>();
 
     private List<SubscriberInfoIndex> subscriberInfoIndexes;
@@ -59,18 +59,17 @@ class SubscriberMethodFinder {
             return subscriberMethods;
         }
 
-        // �Ҳ��������߷�������
-        // ignoreGeneratedIndexĬ��Ϊfalse
+        // 默认为false
         if (ignoreGeneratedIndex) {
             subscriberMethods = findUsingReflection(subscriberClass);
         } else {
             subscriberMethods = findUsingInfo(subscriberClass);
         }
+
         if (subscriberMethods.isEmpty()) {
             throw new EventBusException("Subscriber " + subscriberClass
                     + " and its super classes have no public methods with the @Subscribe annotation");
         } else {
-            // ��ӵ��������
             METHOD_CACHE.put(subscriberClass, subscriberMethods);
             return subscriberMethods;
         }
@@ -81,6 +80,7 @@ class SubscriberMethodFinder {
         findState.initForSubscriber(subscriberClass);
         while (findState.clazz != null) {
             findState.subscriberInfo = getSubscriberInfo(findState);
+
             if (findState.subscriberInfo != null) {
                 SubscriberMethod[] array = findState.subscriberInfo.getSubscriberMethods();
                 for (SubscriberMethod subscriberMethod : array) {
@@ -155,7 +155,7 @@ class SubscriberMethodFinder {
         Method[] methods;
         try {
             // This is faster than getMethods, especially when subscribers are fat classes like Activities
-            // ��������������з���
+            // 获得所有声明的方法
             methods = findState.clazz.getDeclaredMethods();
         } catch (Throwable th) {
             // Workaround for java.lang.NoClassDefFoundError, see https://github.com/greenrobot/EventBus/issues/149
@@ -163,21 +163,20 @@ class SubscriberMethodFinder {
             findState.skipSuperClasses = true;
         }
         for (Method method : methods) {
-            // �����η�
+            // 修饰符
             int modifiers = method.getModifiers();
-            // ������public �Ҳ��� Modifier.ABSTRACT | Modifier.STATIC | BRIDGE | SYNTHETIC;
+            // 必须是public，且不是Modifier.ABSTRACT | Modifier.STATIC | BRIDGE | SYNTHETIC;
             if ((modifiers & Modifier.PUBLIC) != 0 && (modifiers & MODIFIERS_IGNORE) == 0) {
-                // ��������
+                // 参数类型
                 Class<?>[] parameterTypes = method.getParameterTypes();
                 if (parameterTypes.length == 1) {
-                    // ���ע��
+                    // 获得注解
                     Subscribe subscribeAnnotation = method.getAnnotation(Subscribe.class);
                     if (subscribeAnnotation != null) {
-                        // ����¼�����
                         Class<?> eventType = parameterTypes[0];
                         if (findState.checkAdd(method, eventType)) {
                             ThreadMode threadMode = subscribeAnnotation.threadMode();
-                            // ��ӵ����ķ���������
+                            // 添加到集合
                             findState.subscriberMethods.add(new SubscriberMethod(method, eventType, threadMode,
                                     subscribeAnnotation.priority(), subscribeAnnotation.sticky()));
                         }
@@ -200,9 +199,8 @@ class SubscriberMethodFinder {
     }
 
     static class FindState {
-        // ���ķ�������
+        // 订阅方法集合
         final List<SubscriberMethod> subscriberMethods = new ArrayList<>();
-        // ͬһ�¼����͵ķ�������
         final Map<Class, Object> anyMethodByEventType = new HashMap<>();
         final Map<String, Class> subscriberClassByMethodKey = new HashMap<>();
         final StringBuilder methodKeyBuilder = new StringBuilder(128);
@@ -232,7 +230,7 @@ class SubscriberMethodFinder {
         boolean checkAdd(Method method, Class<?> eventType) {
             // 2 level check: 1st level with event type only (fast), 2nd level with complete signature when required.
             // Usually a subscriber doesn't have methods listening to the same event type.
-            // �Ƿ����ͬһ�¼����͵Ķ������
+            // 双重检测
             Object existing = anyMethodByEventType.put(eventType, method);
             if (existing == null) {
                 return true;
